@@ -1,6 +1,7 @@
 import React from 'react';
-import { Bell, Search, Settings, User, Menu, LogOut } from 'lucide-react';
+import { Search, Settings, User, Menu, LogOut } from 'lucide-react';
 import { User as UserType } from '../types';
+import { NotificationBell } from './notificationComponent/NotificationBell';
 
 interface NavbarProps {
   user: UserType;
@@ -39,12 +40,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onToggleSidebar, onLogout }) => {
         </div>
 
         <div className="flex items-center space-x-2">
-          <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 relative">
-            <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-              <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
-            </span>
-          </button>
+          <NotificationBell />
           
           <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
             <Settings className="w-5 h-5 text-gray-600" />

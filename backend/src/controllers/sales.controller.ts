@@ -6,13 +6,15 @@ import { Product } from '../entities/Product';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { User } from '../entities/User';
 import { io, connectedUsers } from '../socket';
+import { Notification } from '../entities/Notification';
 
 // Create Sales Order
-export const createSalesOrder = async (req: AuthRequest, res: Response) => {
+export const createSalesOrder = async (req: AuthRequest, res: Response): Promise<void> => {
   const { items } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ message: 'At least one item is required.' });
+    res.status(400).json({ message: 'At least one item is required.' });
+    return 
   }
  
   const salesOrderRepo = AppDataSource.getRepository(SalesOrder);
@@ -33,7 +35,10 @@ export const createSalesOrder = async (req: AuthRequest, res: Response) => {
 
     for (const item of items) {
       const product = await productRepo.findOneBy({ id: item.productId });
-      if (!product) return res.status(404).json({ message: `Product ID ${item.productId} not found` });
+      if (!product) {
+        res.status(404).json({ message: `Product ID ${item.productId} not found` });
+        return 
+      }
 
       const unitPrice = product.unitPrice;
       const totalPrice = Number(unitPrice) * item.quantity;
@@ -56,7 +61,7 @@ export const createSalesOrder = async (req: AuthRequest, res: Response) => {
 };
 
 // Get all sales orders
-export const getAllOrders = async (req: AuthRequest, res: Response) => {
+export const getAllOrders = async (req: AuthRequest, res: Response): Promise<void> => {
   const repo = AppDataSource.getRepository(SalesOrder);
   const userRole = req.user!.role;
 
@@ -72,7 +77,8 @@ export const getAllOrders = async (req: AuthRequest, res: Response) => {
     if (!isNaN(userId)) {
       where.salesRep = { id: userId };
     } else {
-      return res.status(400).json({ message: 'Invalid userId' });
+      res.status(400).json({ message: 'Invalid userId' });
+      return 
     }
   }
 
@@ -97,25 +103,33 @@ export const getAllOrders = async (req: AuthRequest, res: Response) => {
 
 
 // Approve order
-export const approveOrder = async (req: AuthRequest, res: Response) => {
+export const approveOrder = async (req: AuthRequest, res: Response): Promise<void> => {
   const { id } = req.params;
   const repo = AppDataSource.getRepository(SalesOrder);
   const productRepo = AppDataSource.getRepository(Product);
+  const notificationRepo = AppDataSource.getRepository(Notification);
 
   const order = await repo.findOne({
     where: { id: Number(id) },
     relations: ['items', 'items.product', 'salesRep']
   });
 
-  if (!order) return res.status(404).json({ message: 'Order not found' });
-  if (order.status !== 'pending') return res.status(400).json({ message: 'Order already processed' });
+  if (!order){
+    res.status(404).json({ message: 'Order not found' });
+    return 
+  }
+  if (order.status !== 'pending') {
+    res.status(400).json({ message: 'Order already processed' });
+    return
+  } 
 
   // Deduct inventory
   for (const item of order.items) {
     if (item.quantity > item.product.stock) {
-      return res.status(400).json({
+      res.status(400).json({
         message: `Not enough stock for product ${item.product.name}`,
       });
+      return 
     }
   }
 
@@ -130,6 +144,13 @@ export const approveOrder = async (req: AuthRequest, res: Response) => {
 
   await repo.save(order);
 
+  await notificationRepo.save({
+    type: 'order-approved',
+    message: `Order #${order.id} has been approved!`,
+    sender: { id: req.user!.id },
+    receiver: { id: order.salesRep.id },
+  });
+
   const salesRepId = order.salesRep?.id?.toString();
   const targetSocketId = connectedUsers.get(salesRepId);
 
@@ -137,26 +158,36 @@ export const approveOrder = async (req: AuthRequest, res: Response) => {
   console.log('targetSocketId:', targetSocketId);
 
   if (targetSocketId) {
+
     io.to(targetSocketId).emit('notification', {
       type: 'order-approved',
-      message: `Your order #${order.id} has been approved!`,
-      timestamp: new Date().toISOString(),
+      message: `Order #${order.id} has been approved!`,
+      sender: { id: req.user!.id },
+      receiver: { id: order.salesRep.id },
     });
+
   }
   res.json({ message: 'Order approved and stock updated' });
 };
 
 // Reject order
-export const rejectOrder = async (req: AuthRequest, res: Response) => {
+export const rejectOrder = async (req: AuthRequest, res: Response): Promise<void> => {
   const { id } = req.params;
   const repo = AppDataSource.getRepository(SalesOrder);
+  const notificationRepo = AppDataSource.getRepository(Notification)
 
   const order = await repo.findOne({
     where: { id: Number(id) },
     relations: ['salesRep'],
   });
-  if (!order) return res.status(404).json({ message: 'Order not found' });
-  if (order.status !== 'pending') return res.status(400).json({ message: 'Order already processed' });
+  if (!order) {
+    res.status(404).json({ message: 'Order not found' });
+    return
+  }
+  if (order.status !== 'pending') {
+    res.status(400).json({ message: 'Order already processed' });
+    return
+  }
 
   order.status = 'rejected';
   order.approvedAt = new Date();
@@ -170,11 +201,19 @@ export const rejectOrder = async (req: AuthRequest, res: Response) => {
   console.log('salesRepId:', salesRepId);
   console.log('targetSocketId:', targetSocketId);
 
+  await notificationRepo.save({
+    type: 'order-rejected',
+    message: `Order #${order.id} has been rejected!`,
+    sender: { id: req.user!.id },
+    receiver: { id: order.salesRep.id },
+  });
+
   if (targetSocketId) {
     io.to(targetSocketId).emit('notification', {
-      type: 'order-approved',
-      message: `Your order #${order.id} has been approved!`,
-      timestamp: new Date().toISOString(),
+      type: 'order-rejected',
+      message: `Order #${order.id} has been rejected!`,
+      sender: { id: req.user!.id },
+      receiver: { id: order.salesRep.id },
     });
   }
 
@@ -182,15 +221,24 @@ export const rejectOrder = async (req: AuthRequest, res: Response) => {
 };
 
 // Mark order as paid
-export const markOrderAsPaid = async (req: AuthRequest, res: Response) => {
+export const markOrderAsPaid = async (req: AuthRequest, res: Response): Promise<void> => {
   const { id } = req.params;
   const orderRepo = AppDataSource.getRepository(SalesOrder);
 
   const order = await orderRepo.findOneBy({ id: Number(id) });
 
-  if (!order) return res.status(404).json({ message: 'Order not found' });
-  if (order.status !== 'approved') return res.status(400).json({ message: 'Only approved orders can be marked as paid' });
-  if (order.isPaid) return res.status(400).json({ message: 'Order is already paid' });
+  if (!order) {
+    res.status(404).json({ message: 'Order not found' });
+    return
+  } 
+  if (order.status !== 'approved') {
+    res.status(400).json({ message: 'Only approved orders can be marked as paid' });
+    return
+  } 
+  if (order.isPaid) {
+    res.status(400).json({ message: 'Order is already paid' });
+    return
+  } 
 
   order.isPaid = true;
   order.paidAt = new Date();

@@ -7,6 +7,7 @@ import userRoutes from './routes/user.routes';
 import productRoutes from './routes/product.routes';
 import salesRoutes from './routes/sales.routes';
 import reportRoutes from './routes/report.routes';
+import notificationRoutes from './routes/notification.routes';
 
 dotenv.config();
 
@@ -26,5 +27,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 export default app;

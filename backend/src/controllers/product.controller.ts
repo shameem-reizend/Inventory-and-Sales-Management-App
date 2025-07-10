@@ -4,23 +4,26 @@ import { Product } from '../entities/Product';
 import { SalesOrderItem } from '../entities/SalesOrderItem';
 
 // Get all products
-export const getProducts = async (_: Request, res: Response) => {
+export const getProducts = async (_: Request, res: Response): Promise<void> => {
   const repo = AppDataSource.getRepository(Product);
   const products = await repo.find();
   res.json(products);
 };
 
 // Get single product
-export const getProductById = async (req: Request, res: Response) => {
+export const getProductById = async (req: Request, res: Response): Promise<void> => {
   const repo = AppDataSource.getRepository(Product);
   const { id } = req.params;
   const product = await repo.findOneBy({ id: Number(id) });
 
-  if (!product) return res.status(404).json({ message: 'Product not found' });
+  if (!product){
+    res.status(404).json({ message: 'Product not found' });
+    return
+  }
   res.json(product);
 };
 
-export const getTopSellingProducts = async (_: Request, res: Response) => {
+export const getTopSellingProducts = async (_: Request, res: Response): Promise<void> => {
   const repo = AppDataSource.getRepository(SalesOrderItem);
   const products = await repo.find();
 
@@ -31,12 +34,15 @@ export const getTopSellingProducts = async (_: Request, res: Response) => {
 };
 
 // Create product
-export const createProduct = async (req: Request, res: Response) => {
+export const createProduct = async (req: Request, res: Response): Promise<void> => {
   const repo = AppDataSource.getRepository(Product);
   const { name, sku, category, unitPrice, stock } = req.body;
 
   const existing = await repo.findOneBy({ sku });
-  if (existing) return res.status(400).json({ message: 'SKU already exists' });
+  if (existing){
+    res.status(400).json({ message: 'SKU already exists' });
+    return 
+  }
 
   const product = repo.create({ name, sku, category, unitPrice, stock });
   await repo.save(product);
@@ -45,13 +51,16 @@ export const createProduct = async (req: Request, res: Response) => {
 };
 
 // Update product
-export const updateProduct = async (req: Request, res: Response) => {
+export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   const repo = AppDataSource.getRepository(Product);
   const { id } = req.params;
   const { name, sku, category, unitPrice, stock, isActive } = req.body;
 
   const product = await repo.findOneBy({ id: Number(id) });
-  if (!product) return res.status(404).json({ message: 'Product not found' });
+  if (!product){
+    res.status(404).json({ message: 'Product not found' });
+    return
+  }
 
   product.name = name ?? product.name;
   product.sku = sku ?? product.sku;
@@ -65,12 +74,15 @@ export const updateProduct = async (req: Request, res: Response) => {
 };
 
 // Delete product
-export const deleteProduct = async (req: Request, res: Response) => {
+export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
   const repo = AppDataSource.getRepository(Product);
   const { id } = req.params;
 
   const product = await repo.findOneBy({ id: Number(id) });
-  if (!product) return res.status(404).json({ message: 'Product not found' });
+  if (!product){ 
+    res.status(404).json({ message: 'Product not found' });
+    return
+  }
 
   await repo.remove(product);
   res.json({ message: 'Product deleted successfully' });

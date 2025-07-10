@@ -24,7 +24,7 @@ const getRevenueData = async () => {
 };
 
 // Export as PDF
-export const exportRevenueAsPDF = async (_req: any, res: Response) => {
+export const exportRevenueAsPDF = async (_req: any, res: Response): Promise<void> => {
   const data = await getRevenueData();
 
   const doc = new PDFDocument();
@@ -47,7 +47,7 @@ export const exportRevenueAsPDF = async (_req: any, res: Response) => {
 };
 
 // Export as Excel
-export const exportRevenueAsExcel = async (_req: any, res: Response) => {
+export const exportRevenueAsExcel = async (_req: any, res: Response): Promise<void> => {
   const data = await getRevenueData();
 
   const workbook = new ExcelJS.Workbook();

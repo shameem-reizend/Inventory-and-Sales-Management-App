@@ -34,7 +34,7 @@ export const getRevenueReport = async (_req: AuthRequest, res: Response) => {
 };
 
 // All approved and paid transactions
-export const getTransactionHistory = async (_req: AuthRequest, res: Response) => {
+export const getTransactionHistory = async (_req: AuthRequest, res: Response): Promise<void> => {
   const repo = AppDataSource.getRepository(SalesOrder);
 
   const orders = await repo.find({
@@ -52,7 +52,7 @@ export const getTransactionHistory = async (_req: AuthRequest, res: Response) =>
 };
 
 // All approved but unpaid orders
-export const getPendingPayments = async (_req: AuthRequest, res: Response) => {
+export const getPendingPayments = async (_req: AuthRequest, res: Response): Promise<void> => {
   const repo = AppDataSource.getRepository(SalesOrder);
 
   const orders = await repo.find({

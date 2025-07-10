@@ -6,6 +6,7 @@ import { User } from '../entities/User';
 import { Product } from '../entities/Product';
 import { SalesOrder } from '../entities/SalesOrder';
 import { SalesOrderItem } from '../entities/SalesOrderItem';
+import { Notification } from '../entities/Notification'
 // import other entities here...
 
 export const AppDataSource = new DataSource({
@@ -17,7 +18,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: true, // change to false in production
   logging: false,
-  entities: [User, Product, SalesOrder, SalesOrderItem], // add other entities here
+  entities: [User, Product, SalesOrder, SalesOrderItem, Notification], // add other entities here
   migrations: ['src/migrations/*.ts'],
   subscribers: [],
 });

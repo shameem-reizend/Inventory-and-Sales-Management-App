@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { RoleProvider } from './contexts/RoleContext';
 import LoginForm from './components/auth/LoginForm';
-import PrivateRoute from './components/auth/PrivateRoute';
 import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
+import {Sidebar} from './components/Sidebar';
+// import Dashboard from './components/Dashboard';
+import { Toaster } from 'react-hot-toast';
+import { Dashboard } from './components/Dashboard';
 
-function App() {
+export const App: React.FC = () => {
   const { user, isAuthenticated, loading, login, logout } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activeSection, setActiveSection] = useState('dashboard');
 
   if (loading) {
     return (
@@ -40,28 +40,16 @@ function App() {
               user={user!}
               isCollapsed={sidebarCollapsed}
               onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-              activeItem={activeSection}
-              onItemClick={setActiveSection}
             />
             
-            <main className="flex-1 min-h-screen">
-              <Routes>
-                <Route 
-                  path="/" 
-                  element={
-                    <PrivateRoute>
-                      <Dashboard user={user!} activeSection={activeSection} />
-                    </PrivateRoute>
-                  } 
-                />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </main>
+            <Dashboard />
           </div>
+           <Toaster
+        position="bottom-right"
+        reverseOrder={false}
+        />
         </div>
       </Router>
     </RoleProvider>
   );
 }
-
-export default App;

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/axiosInterceptor';
-import { Chat } from '../Chat';
 
 interface User {
   id: number;
@@ -320,7 +319,6 @@ export const SalesRepDashboard: React.FC = () => {
           </div>
         </div>
       </div>
-      <Chat />
     </div>
   );
 };

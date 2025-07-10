@@ -4,8 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { IsEmail } from 'class-validator';
+import { Notification } from './Notification';
 
 export type UserRole = 'admin' | 'manager' | 'sales' | 'accountant';
 
@@ -39,4 +41,10 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @OneToMany(() => Notification, (notification) => notification.sender)
+  sentNotifications!: Notification[];
+
+  @OneToMany(() => Notification, (notification) => notification.receiver)
+  receivedNotifications!: Notification[];
 }

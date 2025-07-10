@@ -13,13 +13,12 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { SidebarItem, User } from '../types';
+import { Link, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
   user: User;
   isCollapsed: boolean;
   onToggle: () => void;
-  activeItem: string;
-  onItemClick: (itemId: string) => void;
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -55,7 +54,7 @@ const sidebarItems: SidebarItem[] = [
     id: 'Pendingpayments',
     label: 'Pending Payments',
     icon: 'DollarSign',
-    path: '/Pending payments',
+    path: '/Pending-payments',
     roles: ['accountant']
   },
   {
@@ -93,19 +92,18 @@ const iconMap = {
   Receipt
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ 
+export const Sidebar: React.FC<SidebarProps> = ({ 
   user, 
   isCollapsed, 
-  onToggle, 
-  activeItem, 
-  onItemClick 
+  onToggle 
 }) => {
+  const location = useLocation();
   const filteredItems = sidebarItems.filter(item => 
     item.roles.includes(user.role)
   );
 
   return (
-    <div className={`
+     <div className={`
       bg-white border-r border-gray-200 transition-all duration-300 ease-in-out
       ${isCollapsed ? 'w-16' : 'w-64'}
       h-screen sticky top-0 flex flex-col shadow-lg
@@ -135,12 +133,12 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="space-y-1 px-2">
           {filteredItems.map((item) => {
             const Icon = iconMap[item.icon as keyof typeof iconMap];
-            const isActive = activeItem === item.id;
+            const isActive = location.pathname === item.path;
             
             return (
-              <button
+              <Link
                 key={item.id}
-                onClick={() => onItemClick(item.id)}
+                to={item.path}
                 className={`
                   w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200
                   ${isActive 
@@ -154,7 +152,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {!isCollapsed && (
                   <span className="font-medium">{item.label}</span>
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -178,5 +176,3 @@ const Sidebar: React.FC<SidebarProps> = ({
     </div>
   );
 };
-
-export default Sidebar;
