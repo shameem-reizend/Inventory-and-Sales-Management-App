@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { AppDataSource } from '../config/data-source';
 import { Product } from '../entities/Product';
 import { SalesOrderItem } from '../entities/SalesOrderItem';
+import { AppError } from '../utils/AppError';
 
 // Get all products
 export const getProducts = async (_: Request, res: Response): Promise<void> => {
@@ -11,13 +12,13 @@ export const getProducts = async (_: Request, res: Response): Promise<void> => {
 };
 
 // Get single product
-export const getProductById = async (req: Request, res: Response): Promise<void> => {
+export const getProductById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const repo = AppDataSource.getRepository(Product);
   const { id } = req.params;
   const product = await repo.findOneBy({ id: Number(id) });
 
   if (!product){
-    res.status(404).json({ message: 'Product not found' });
+    next(new AppError('Product Not Found', 404))
     return
   }
   res.json(product);
@@ -34,13 +35,13 @@ export const getTopSellingProducts = async (_: Request, res: Response): Promise<
 };
 
 // Create product
-export const createProduct = async (req: Request, res: Response): Promise<void> => {
+export const createProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const repo = AppDataSource.getRepository(Product);
   const { name, sku, category, unitPrice, stock } = req.body;
 
   const existing = await repo.findOneBy({ sku });
   if (existing){
-    res.status(400).json({ message: 'SKU already exists' });
+    next(new AppError('SKU already exists', 400))
     return 
   }
 
@@ -51,14 +52,14 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 };
 
 // Update product
-export const updateProduct = async (req: Request, res: Response): Promise<void> => {
+export const updateProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const repo = AppDataSource.getRepository(Product);
   const { id } = req.params;
   const { name, sku, category, unitPrice, stock, isActive } = req.body;
 
   const product = await repo.findOneBy({ id: Number(id) });
   if (!product){
-    res.status(404).json({ message: 'Product not found' });
+    next(new AppError('Product not found', 404));
     return
   }
 
@@ -74,13 +75,13 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
 };
 
 // Delete product
-export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
+export const deleteProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const repo = AppDataSource.getRepository(Product);
   const { id } = req.params;
 
   const product = await repo.findOneBy({ id: Number(id) });
   if (!product){ 
-    res.status(404).json({ message: 'Product not found' });
+    next(new AppError('Product not found', 404));
     return
   }
 

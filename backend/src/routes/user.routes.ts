@@ -10,11 +10,11 @@ import { authenticate, authorize } from '../middlewares/auth.middleware';
 const userRoutes = Router();
 
 userRoutes.use(authenticate);
-userRoutes.use(authorize('admin')); // Only admin
+// userRoutes.use(); // Only admin
 
-userRoutes.get('/', getUsers);
-userRoutes.post('/', createUser);
+userRoutes.get('/', authorize('admin'), getUsers);
+userRoutes.post('/', authorize('admin'), createUser);
 userRoutes.put('/:id', updateUser);
-userRoutes.delete('/:id', deleteUser);
+userRoutes.delete('/:id', authorize('admin'), deleteUser);
 
 export default userRoutes;

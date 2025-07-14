@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/User';
 import bcrypt from 'bcrypt';
+import { AppError } from '../utils/AppError';
 
 // Get all users
 export const getUsers = async (_: Request, res: Response): Promise<void> => {
@@ -11,13 +12,13 @@ export const getUsers = async (_: Request, res: Response): Promise<void> => {
 };
 
 // Add new user
-export const createUser = async (req: Request, res: Response): Promise<void> => {
+export const createUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const userRepo = AppDataSource.getRepository(User);
   const { name, email, password, role } = req.body;
 
   const existing = await userRepo.findOneBy({ email });
   if (existing) {
-    res.status(400).json({ message: 'Email already exists' });
+    next(new AppError('Email already exists', 400))
     return 
   }
 
@@ -29,19 +30,19 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 };
 
 // Update user
-export const updateUser = async (req: Request, res: Response): Promise<void> => {
+export const updateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const userRepo = AppDataSource.getRepository(User);
   const { id } = req.params;
-  const { name, role, isActive } = req.body;
+  const { name, email, isActive } = req.body;
 
   const user = await userRepo.findOneBy({ id: Number(id) });
   if (!user) {
-    res.status(404).json({ message: 'User not found' });
+    next(new AppError('User not found', 404));
     return 
   }
 
   user.name = name ?? user.name;
-  user.role = role ?? user.role;
+  user.email = email ?? user.email;
   user.isActive = isActive ?? user.isActive;
 
   await userRepo.save(user);
@@ -49,13 +50,13 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 };
 
 // Delete user
-export const deleteUser = async (req: Request, res: Response): Promise<void> => {
+export const deleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const userRepo = AppDataSource.getRepository(User);
   const { id } = req.params;
 
   const user = await userRepo.findOneBy({ id: Number(id) });
   if (!user) {
-    res.status(404).json({ message: 'User not found' });
+    next(new AppError('User not found', 404));
     return 
   }
 

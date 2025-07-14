@@ -1,12 +1,13 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { AppDataSource } from '../config/data-source';
 import { SalesOrder } from '../entities/SalesOrder';
 import { SalesOrderItem } from '../entities/SalesOrderItem';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { Between, Raw } from 'typeorm';
+import { AppError } from '../utils/AppError';
 
 // Revenue by Product / Category / Month
-export const getRevenueReport = async (_req: AuthRequest, res: Response) => {
+export const getRevenueReport = async (_req: AuthRequest, res: Response, next: NextFunction) => {
   const itemRepo = AppDataSource.getRepository(SalesOrderItem);
 
   try {
@@ -29,7 +30,7 @@ export const getRevenueReport = async (_req: AuthRequest, res: Response) => {
     res.json(items);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Failed to generate report' });
+    next(new AppError('Failed to generate report', 500));
   }
 };
 

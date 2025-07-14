@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/User';
 import bcrypt from 'bcrypt';
@@ -7,15 +7,29 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from '../utils/jwt';
+import { AppError } from '../utils/AppError';
 
-export const register = async (req: Request, res: Response): Promise<void> => {
+interface authenticateRequest extends Request {
+      user?: {
+        id: number;
+        role: string;
+        name?: string;
+        email?: string;
+        password: string;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+      };
+}
+
+export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const userRepo = AppDataSource.getRepository(User);
   const { name, email, password, role } = req.body;
 
   try {
     const existing = await userRepo.findOne({ where: { email } });
     if (existing) {
-      res.status(409).json({ message: 'Email already in use' });
+      next(new AppError('Email already in use', 409))
       return 
     }
 
@@ -25,24 +39,24 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err });
+    next(new AppError('Server Error', 500))
   }
 };
 
-export const login = async (req: Request, res: Response): Promise<void> => {
+export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const userRepo = AppDataSource.getRepository(User);
   const { email, password } = req.body;
 
   try {
     const user = await userRepo.findOne({ where: { email } });
     if (!user){
-      res.status(404).json({ message: 'User not found' });
+      next(new AppError('User Not Found', 404))
       return
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch){
-       res.status(401).json({ message: 'Invalid credentials' });
+       next(new AppError('Invalid Credentials', 401))
        return
     }
 
@@ -58,14 +72,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     res.json({ accessToken, user });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err });
+    next(new AppError('Server Error', 500))
   }
 };
 
-export const refreshToken = (req: Request, res: Response): void => {
+export const refreshToken = (req: Request, res: Response, next: NextFunction): void => {
   const token = req.cookies.refreshToken;
   if (!token){
-    res.status(401).json({ message: 'No refresh token' });
+    next(new AppError('No refresh tokn', 401))
     return
   }
 
@@ -78,7 +92,7 @@ export const refreshToken = (req: Request, res: Response): void => {
     );
     res.json({ accessToken: newAccessToken });
   } catch (err) {
-    res.status(403).json({ message: 'Invalid refresh token' });
+    next(new AppError('Invalid refresh token', 403))
   }
 };
 
@@ -87,24 +101,24 @@ export const logout = (req: Request, res: Response) => {
   res.json({ message: 'Logged out successfully' });
 };
 
-export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
+export const getCurrentUser = async (req: authenticateRequest, res: Response, next: NextFunction): Promise<void> => {
   const userRepo = AppDataSource.getRepository(User);
-  const userId = req.user?.id; // Assuming user ID is set in req.user by middleware
+  const userId = req.user?.id; 
 
   if (!userId){
-    res.status(401).json({ message: 'Unauthorized' });
+    next(new AppError('unauthorized', 401))
     return
   }
 
   try {
     const user = await userRepo.findOne({ where: { id: userId } });
     if (!user){
-      res.status(404).json({ message: 'User not found' });
+      next(new AppError('User Not Found', 404));
       return
     }
 
     res.json(user);
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err });
+    next(new AppError('Server error', 500));
   }
 };

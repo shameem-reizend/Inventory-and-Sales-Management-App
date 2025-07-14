@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { AppDataSource } from '../config/data-source';
 import { SalesOrder } from '../entities/SalesOrder';
 import { SalesOrderItem } from '../entities/SalesOrderItem';
@@ -7,13 +7,14 @@ import { AuthRequest } from '../middlewares/auth.middleware';
 import { User } from '../entities/User';
 import { io, connectedUsers } from '../socket';
 import { Notification } from '../entities/Notification';
+import { AppError } from '../utils/AppError';
 
 // Create Sales Order
-export const createSalesOrder = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createSalesOrder = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const { items } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
-    res.status(400).json({ message: 'At least one item is required.' });
+    next(new AppError('At least one item is required.', 400))
     return 
   }
  
@@ -24,6 +25,10 @@ export const createSalesOrder = async (req: AuthRequest, res: Response): Promise
 
   try {
     const salesRep = await userRepo.findOneBy({ id: req.user!.id });
+
+    if (!salesRep) {
+      throw new AppError('Sales rep not found', 404);
+    }
 
     const salesOrder = salesOrderRepo.create({
       salesRep,
@@ -36,7 +41,7 @@ export const createSalesOrder = async (req: AuthRequest, res: Response): Promise
     for (const item of items) {
       const product = await productRepo.findOneBy({ id: item.productId });
       if (!product) {
-        res.status(404).json({ message: `Product ID ${item.productId} not found` });
+        next(new AppError(`Product ID ${item.productId} not found`, 404))
         return 
       }
 
@@ -56,12 +61,12 @@ export const createSalesOrder = async (req: AuthRequest, res: Response): Promise
 
     res.status(201).json({ message: 'Sales order created' });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to create order', error: err });
+    next(new AppError('Failed to create order', 500))
   }
 };
 
 // Get all sales orders
-export const getAllOrders = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getAllOrders = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const repo = AppDataSource.getRepository(SalesOrder);
   const userRole = req.user!.role;
 
@@ -77,7 +82,7 @@ export const getAllOrders = async (req: AuthRequest, res: Response): Promise<voi
     if (!isNaN(userId)) {
       where.salesRep = { id: userId };
     } else {
-      res.status(400).json({ message: 'Invalid userId' });
+      next(new AppError('Invalid user', 400))
       return 
     }
   }
@@ -96,14 +101,14 @@ export const getAllOrders = async (req: AuthRequest, res: Response): Promise<voi
     res.json(orders);
   } catch (err) {
     console.error('Error fetching orders:', err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    next(new AppError('Server error', 500))
   }
 };
 
 
 
 // Approve order
-export const approveOrder = async (req: AuthRequest, res: Response): Promise<void> => {
+export const approveOrder = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const { id } = req.params;
   const repo = AppDataSource.getRepository(SalesOrder);
   const productRepo = AppDataSource.getRepository(Product);
@@ -115,20 +120,18 @@ export const approveOrder = async (req: AuthRequest, res: Response): Promise<voi
   });
 
   if (!order){
-    res.status(404).json({ message: 'Order not found' });
+    next(new AppError('Order not found', 404))
     return 
   }
   if (order.status !== 'pending') {
-    res.status(400).json({ message: 'Order already processed' });
+    next(new AppError('Order already processed', 400))
     return
   } 
 
   // Deduct inventory
   for (const item of order.items) {
     if (item.quantity > item.product.stock) {
-      res.status(400).json({
-        message: `Not enough stock for product ${item.product.name}`,
-      });
+      next(new AppError(`Not enough stock for product ${item.product.name}`, 400))
       return 
     }
   }
@@ -171,7 +174,7 @@ export const approveOrder = async (req: AuthRequest, res: Response): Promise<voi
 };
 
 // Reject order
-export const rejectOrder = async (req: AuthRequest, res: Response): Promise<void> => {
+export const rejectOrder = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const { id } = req.params;
   const repo = AppDataSource.getRepository(SalesOrder);
   const notificationRepo = AppDataSource.getRepository(Notification)
@@ -181,11 +184,11 @@ export const rejectOrder = async (req: AuthRequest, res: Response): Promise<void
     relations: ['salesRep'],
   });
   if (!order) {
-    res.status(404).json({ message: 'Order not found' });
+    next(new AppError('Order not found', 404))
     return
   }
   if (order.status !== 'pending') {
-    res.status(400).json({ message: 'Order already processed' });
+    next(new AppError('Order already processed', 400))
     return
   }
 
@@ -221,22 +224,22 @@ export const rejectOrder = async (req: AuthRequest, res: Response): Promise<void
 };
 
 // Mark order as paid
-export const markOrderAsPaid = async (req: AuthRequest, res: Response): Promise<void> => {
+export const markOrderAsPaid = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   const { id } = req.params;
   const orderRepo = AppDataSource.getRepository(SalesOrder);
 
   const order = await orderRepo.findOneBy({ id: Number(id) });
 
   if (!order) {
-    res.status(404).json({ message: 'Order not found' });
+    next(new AppError('Order not found', 404))
     return
   } 
   if (order.status !== 'approved') {
-    res.status(400).json({ message: 'Only approved orders can be marked as paid' });
+    next(new AppError('Only approved orders can be marked as paid', 400))
     return
   } 
   if (order.isPaid) {
-    res.status(400).json({ message: 'Order is already paid' });
+    next(new AppError('Order is already paid', 400))
     return
   } 
 

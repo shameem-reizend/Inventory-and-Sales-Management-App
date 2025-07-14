@@ -1,6 +1,7 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { AppDataSource } from "../config/data-source";
 import { Notification } from "../entities/Notification";
+import { AppError } from "../utils/AppError";
 
 interface authenticateRequest extends Request {
       user?: {
@@ -14,7 +15,7 @@ interface authenticateRequest extends Request {
         updatedAt: Date;
       };
 }
-export const getAllUserNotification = async (req: authenticateRequest, res: Response): Promise<void> => {
+export const getAllUserNotification = async (req: authenticateRequest, res: Response, next: NextFunction): Promise<void> => {
 
     const notificationRepo = AppDataSource.getRepository(Notification);
 
@@ -28,11 +29,11 @@ export const getAllUserNotification = async (req: authenticateRequest, res: Resp
             notifications
         });
     } catch(error){
-        res.status(500).json({ message: 'Server error', error });
+        next(new AppError('Server error', 500));
     }
 };
 
-export const getAllUnreadNotifications = async (req: authenticateRequest, res: Response): Promise<void> => {
+export const getAllUnreadNotifications = async (req: authenticateRequest, res: Response, next: NextFunction): Promise<void> => {
 
     const notificationRepo = AppDataSource.getRepository(Notification);
 
@@ -50,11 +51,11 @@ export const getAllUnreadNotifications = async (req: authenticateRequest, res: R
             count: notifications.length
         });
     } catch(error){
-        res.status(500).json({ message: 'Server error', error });
+        next(new AppError('Server error', 500));
     }
 };
 
-export const markNotificationAsRead = async (req: Request, res: Response): Promise<void> => {
+export const markNotificationAsRead = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
 
     const notificationRepo = AppDataSource.getRepository(Notification);
 
@@ -67,7 +68,7 @@ export const markNotificationAsRead = async (req: Request, res: Response): Promi
         })
 
         if(!notification){
-            res.status(404).json({ message: 'Notification not found' });
+            next(new AppError('Notification not found', 404));
             return
         }
 
@@ -77,11 +78,11 @@ export const markNotificationAsRead = async (req: Request, res: Response): Promi
         res.status(200).json({ message: 'Notification marked as read' })
 
     } catch(error){
-        res.status(500).json({ message: 'Server error', error });
+        next(new AppError('Server error', 500));
     }
 }
 
-export const markAllAsRead = async (req: authenticateRequest, res: Response): Promise<void> => {
+export const markAllAsRead = async (req: authenticateRequest, res: Response, next: NextFunction): Promise<void> => {
 
     const notificationRepo = AppDataSource.getRepository(Notification);
 
@@ -95,7 +96,7 @@ export const markAllAsRead = async (req: authenticateRequest, res: Response): Pr
 
         res.status(200).json({ message: 'Notifications of user marked as read'});
     } catch(error){
-        res.status(500).json({ message: 'Server error', error });
+        next(new AppError('Server error', 500));
     }
 }
 
