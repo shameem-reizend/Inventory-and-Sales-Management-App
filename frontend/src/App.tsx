@@ -8,6 +8,7 @@ import {Sidebar} from './components/Sidebar';
 // import Dashboard from './components/Dashboard';
 import { Toaster } from 'react-hot-toast';
 import { Dashboard } from './components/Dashboard';
+import { UserProvider } from './contexts/UserContext';
 
 export const App: React.FC = () => {
   const { user, isAuthenticated, loading, login, logout } = useAuth();
@@ -27,29 +28,31 @@ export const App: React.FC = () => {
 
   return (
     <RoleProvider user={user}>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Navbar 
-            user={user!} 
-            onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-            onLogout={logout}
-          />
-          
-          <div className="flex">
-            <Sidebar
-              user={user!}
-              isCollapsed={sidebarCollapsed}
-              onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+      <UserProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50">
+            <Navbar 
+              user={user!} 
+              onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+              onLogout={logout}
             />
             
-            <Dashboard />
+            <div className="flex">
+              <Sidebar
+                user={user!}
+                isCollapsed={sidebarCollapsed}
+                onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+              />
+              
+              <Dashboard />
+            </div>
+            <Toaster
+              position="bottom-right"
+              reverseOrder={false}
+              />
           </div>
-           <Toaster
-        position="bottom-right"
-        reverseOrder={false}
-        />
-        </div>
-      </Router>
+        </Router>
+      </UserProvider>
     </RoleProvider>
   );
 }

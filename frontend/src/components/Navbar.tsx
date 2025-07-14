@@ -2,6 +2,8 @@ import React from 'react';
 import { Search, Settings, User, Menu, LogOut } from 'lucide-react';
 import { User as UserType } from '../types';
 import { NotificationBell } from './notificationComponent/NotificationBell';
+import { useUser } from '../contexts/UserContext';
+import { useNavigate } from 'react-router';
 
 interface NavbarProps {
   user: UserType;
@@ -10,6 +12,14 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ user, onToggleSidebar, onLogout }) => {
+
+  const {name} = useUser();
+  const Navigate = useNavigate();
+
+  const handleSettings = () => {
+    Navigate('settings');
+  }
+
   return (
     <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-sm">
       <div className="flex items-center space-x-4">
@@ -40,9 +50,9 @@ const Navbar: React.FC<NavbarProps> = ({ user, onToggleSidebar, onLogout }) => {
         </div>
 
         <div className="flex items-center space-x-2">
-          <NotificationBell />
+            <NotificationBell />
           
-          <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+          <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200" onClick={handleSettings}>
             <Settings className="w-5 h-5 text-gray-600" />
           </button>
 
@@ -59,8 +69,8 @@ const Navbar: React.FC<NavbarProps> = ({ user, onToggleSidebar, onLogout }) => {
               <User className="w-4 h-4 text-white" />
             </div>
             <div className="hidden md:block">
-              <p className="text-sm font-medium text-gray-800">{user.name}</p>
-              <p className="text-xs text-gray-500 capitalize">{user.role.replace('-', ' ')}</p>
+              <p className="text-sm font-medium text-gray-800">{name}</p>
+              <p className="text-xs text-gray-500 capitalize">{user.role}</p>
             </div>
           </div>
         </div>
